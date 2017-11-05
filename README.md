@@ -80,7 +80,7 @@ Html5 Video 实现方案
 >>>第二步: 创建video标签时,手动加上内联播放的属性(iOS不支持preload)
 
 >>>			<!-- 让ios支持内联播放,必须添加 webkit-playsinline 标签-->
->>>			<video webkit-playsinline id="videoMedia" controls="controls" preload>
+>>>			<video x-webkit-airplay webkit-playsinline x5-playsinline id="videoMedia" controls="controls" preload>
 
 >* ** 2.2.3、 Android非内联播放 **
 
@@ -111,3 +111,6 @@ Html5 Video 实现方案
 如果是内联播放模式下(或者是普通浏览器),就应该将图片隐藏,然后将视频大小设置为本来的大小(一般为图片大小)；
 如果是非内联播放模式(全屏模式),就没有必要隐藏图片了,因为iOS下会自动打开一个全屏播放器来播放视频,
 Android下考虑到Html5 video较卡,所以也会通过使用原生播放器来全屏播放视频.
+
+四、[h5嵌入视频遇到的bug及总结](./bug.md)
+-------------
