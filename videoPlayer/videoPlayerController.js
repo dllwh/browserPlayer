@@ -32,9 +32,10 @@ var defaultConfig = {
 	currentVideoTime : 0,
 	playbackRateDefault : 1, // 默认变速播放的值
 	previewStart : 0, // 预览图片加载状态/0=没有加载，1=正在加载，2=加载完成
-	isM3u8 : false, // 是否是m3u8格式，是的话则可以加载hls.js
+	// 是否是m3u8格式，是的话则可以加载hls.js
+	isM3u8 : false, 
+	// 是否开启调试模式
 	debug : false
-// 是否开启调试模式
 }
 
 /** 语言配置 */
@@ -359,8 +360,8 @@ function animatePause() {
 
 /** 点击右键屏蔽 */
 function contextmenuHandler(event) {
-	e.preventDefault();
-	e.stopPropagation();
+	event.preventDefault();
+	event.stopPropagation();
 }
 
 /** 监听到播放出错 */
