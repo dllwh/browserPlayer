@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<meta name="referrer" content="never">
+    	<meta name="viewport" content="width=device-width, initial-scale=1">
+    	<!-- 播放器样式 -->
+    	<link href="videojs/video-js.css" rel="stylesheet">
+    	<!-- If you'd like to support IE8 (for Video.js versions prior to v7) -->
+  		<!--<script src="https://vjs.zencdn.net/ie8/1.1.2/videojs-ie8.min.js"></script>-->
+		<title>HTML5视频播放器：videojs支持hls直播实例</title>
+		
+		<style type="text/css">
+			video {
+	            display: block;
+	            width: 100%;
+	            height: auto;
+	            border: 1px solid;
+	    	}
+	    	
+	    	.video-js .vjs-tech {
+	    		/** 这行代码最为关键，这样视频播放器的外层容器都由视频内容本身撑大 */
+    			/*position: relative;*/
+    		}
+	    	
+	    	
+	    	/** 暂停时显示播放按钮 */
+	    	.vjs-paused .vjs-big-play-button,
+	    	.vjs-paused .vjs-has-started .vjs-big-play-button {
+	    		display: block;
+			}
+			/** 点击屏幕播放/暂停 */
+			.video-js.vjs-playing .vjs-tech {
+				pointer-events: auto;
+			}
+			
+			/** 进度显示当前播放时间以及总共视频时长*/
+			.video-js .vjs-time-control {
+				display:block;
+			}
+			.video-js .vjs-remaining-time {
+				display: none;
+			}
+			
+			/** 视频已经播放过了 */
+			.vjs-has-started .vjs-big-play-button {
+			    /*display: block!important;*/
+			}
+			/** 视频播放过程中 */
+			.vjs-playing .vjs-big-play-button {
+			    /*display: none;*/
+			}
+			
+			/** 视频暂停播放 */
+			.vjs-paused .vjs-big-play-button {
+			    /*display: block;*/
+			}
+			
+			/** 视频播放结束了 */
+ 			.vjs-ended .vjs-big-play-button {
+ 				
+ 			}
+ 			.vjs-subs-caps-button,.vjs-audio-button{
+			        visibility: hidden;
+			    }
+		</style>
+	</head>
+
+	<!--
+    	vjs-big-play-centered : 播放按钮居中，默认的播放按钮在左上角(未生效)
+    	webkit-playsinline="true" /这个属性在 ios 10中设置有用，其他的目前还不起作用，让视频在小窗内播放，也就是不是全屏播放/
+		playsinline="true" /IOS微信浏览器支持小窗内播放
+		x5-video-player-type="h5" /启用H5播放器，是wechat安卓版特性/
+		x5-video-player-fullscreen="true" /全屏设置，设置为 true 是防止横屏/>
+		x5-video-orientation="portraint" /播放器屏幕的方向，landscape横屏，portraint竖屏，默认值为竖屏/
+    -->
+    
+	<body>
+		<video id="liveVideo" class="video-js">
+			<p class="video-js vjs-default-skin vjs-big-play-centered" 
+				playsinline="true" 
+				webkit-playsinline="true"  
+				x5-playsinline="true" 
+				x5-video-player-type="h5"
+    			x5-video-player-fullscreen="true"
+    			x5-video-orientation="portraint"
+				x-webkit-airplay="allow">
+				To view this video please enable JavaScript, and consider upgrading to a web browser that
+				<p class="vjs-no-js"> 
+				 	播放视频需要启用 JavaScript，推荐使用
+				 	<a href="http://videojs.com/html5-video-support/" target="_blank">支持HTML5</a>的浏览器访问。
+				</p>
+			</p>
+			 <track label="中文字幕" kind="subtitles" chapters metadata srclang="zh" src="caption.vtt">
+		</video>
+		
+		<div class="actions">
+			<a href="javascript:;" id="btn1">播放</a>		
+			<a href="javascript:;" id="btn2">暂停</a>
+			<a href="javascript:;" id="btn3">隐藏音量调节控件</a>
+			<a href="javascript:;" id="btn4">设置宽高</a>
+			<a href="javascript:;" id="btn5">显示</a>
+			<a href="javascript:;" id="btn6">隐藏</a>
+			<a href="javascript:;" id="btn0">销毁</a>
+			<a href="javascript:;" id="btn7">设置其它资源</a>
+			<a href="javascript:;" id="btn8">进入全屏</a>		
+			<a href="javascript:;" id="btn9">退出全屏</a>
+			<a href="javascript:;" id="btn10">快进</a>
+			<a href="javascript:;" id="btn11">快退</a>
+					
+		</div>
+		
+		<script src="jquery/jquery-2.1.0.js" type="text/javascript" charset="utf-8"></script>	
+		 <!-- 播放器js -->
+		<script src="videojs/video.js"></script>
+		<script src="lang/zh-CN.js" type="text/javascript" charset="utf-8"></script>
+		<script type="text/javascript">
+			/** 禁用右键 */
+			$(".video-js").bind("contextmenu", function (e) {
+            	return false;
+          	});
+          	
+          	/**  禁用右键菜单*/
+			document.oncontextmenu = function() {
+				event.preventDefault();
+				event.stopPropagation();
+				event.returnValue = false;
+			}
+		
+			/** 禁用网页上选取的内容 */
+			document.onselectstart = function() {
+				event.returnValue = false;
+			}
+	
+			// 播放器配置
+			var playerOptions = {
+				autoplay: false, // 播放器准备好之后，是否自动播放，默认false。IOS设备屏蔽了这个属性
+				controls: true, // 是否显示底部控制栏：true/false
+				// height: '800', // 视频容器的高度
+				// live :true,
+				// aspectRatio :'16:9',
+				width: '512', // 视频容器的宽度
+				loop: true, // 是否循环播放
+				muted: false, // 是否静音
+				language : 'zh-CN',
+				fluid: false, // 是否自适应布局，如果<video>标签有“vjs-fluid”样式时，这个选项会自动设置为true。
+				poster: "http://media.w3.org/2010/05/bunny/poster.png", // 播放前显示的视频画面，播放开始之后自动移除。通常传入一个URL
+				preload: 'auto', // auto：自动；none : 不预加载任何数据，直到用户开始播放才开始下载
+				src:'', // 视频源地址
+				sources: [{ // 资源列表，数组形式，会根据兼容顺序自动切换
+					src: "https://d2zihajmogu5jn.cloudfront.net/bipbop-advanced/bipbop_16x9_variant.m3u8"
+//					src : 'http://fv.chinatet.com/record/videochat/2018/11/15/chinatet_427491_1542272401761.mp4'
+				}/*,{
+					src : 'http://www.html5videoplayer.net/videos/madagascar3.mp4',
+					type:'video/mp4'
+				},{
+					src : 'http://www.w3school.com.cn/example/html5/mov_bbb.mp4',
+					type:'video/mp4'
+				}*/],
+				// children: ['bigPlayButton','controlBar'],
+				playbackRates: [1, 1.5, 2.0], // 播放倍速菜单
+				nativeControlsForTouch: true, // 是否使用浏览器原生的控件
+				// plugins: {}, // 插件
+				notSupportedMessage : '此视频暂无法播放，请稍后再试',// 允许覆盖video.js无法播放媒体体源时显示的默认信息
+				bigPlayButtion : true,  //大播放按钮
+				textTrackButtion:false,
+				errorDisplay:false,
+				controlBar: { // 控制功能组件树
+					captionsButton: true,  // 用于切换和选择字幕的按钮组件
+					chaptersButton: true, 
+					liveDisplay: true, 
+					subtitlesButton: false, 
+					currentTimeDisplay:true,// 是否显示当前播放时间
+					durationDisplay:true, // 是否显示总时长
+					remainingTimeDisplay: true, // 是否显示剩余时间 
+					playbackRateMenuButton : true,  //播放速率
+					timeDivider :true,// 时间分割线
+					progressController :true,// 进度条
+					progressControl: { // 时间轴
+						
+					},
+//					VolumeControl:{ //音量控制
+//						VolumeBar :
+//          			VolumeLevel :
+//          			VolumeHandle:
+//					},  
+					volumeMenuButton: { //竖着的音量条 
+						inline: false,//设置音量bar为竖直
+            			vertical: true//设置音量bar为竖直
+					},
+					muteToggle: false, // 是否显示静音按钮
+					fullscreenToggle: true  // 是否显示全屏按钮
+				},
+				techOrder:["html5"] // 使用哪种技术播放，可选值有'html5','flash',默认为['html5'],如果要使用flash播放的，需要手动引入flash相关逻辑的代码,且需要指定swf文件的路径
+			};
+			
+			var myPlayer = videojs('liveVideo', playerOptions);  // 初始化视频播放器
+				
+			myPlayer.ready(function() { //视频播放器初始化完毕，就会调用这个回调函数
+				
+				resetVideoSize(myPlayer);
+				
+           		this.on('loadstart',function(){ // 
+	                console.log('客户端开始请求数据');
+	            });
+	            this.on('loadstart',function(){ // 
+	                console.log('客户端正在请求数据');
+	            });
+	            this.on('suspend',function(){ // 
+	                console.log('客户端延迟下载');
+	            });
+	             this.on('abort',function(){ // 
+	                console.log('客户端主动终止下载（不是因为错误引起');
+	            });
+	            this.on('loadeddata',function(){
+	                console.log('loadeddata');
+	            });
+	            
+	            // 绑定视频元数据加载完成事件
+				this.on('loadedmetadata',function(){
+	                console.log('加载到元数据后开始播放视频');
+	            });
+	            
+	            /** 浏览器根据当前网络状况去判断是否已经加载了足够的媒体片断而支撑基本的播放 */
+	            this.on('canplaythrough',function(){
+                    if(!myPlayer.paused){
+                    	// $(".vjs-has-started .vjs-big-play-button").show();
+	                	videoPlayController.startVideo();	
+	                } else {
+	                	// $(".vjs-has-started .vjs-big-play-button").hide();
+	                }
+                });
+                
+                // 绑定视频播放事件
+                this.on('play',function(){
+	                console.log('开始/恢复播放');
+	            });
+	            
+	            // 绑定视频播放中事件
+                /** 当因缓冲而引起的暂停和停止恢复到播放时产生该事件 */
+                this.on('playing',function(){
+                    console.log("playing")
+                });
+				
+				// 绑定视频暂停事件
+          		this.on('pause',function(){
+                    console.log("暂停--播放完毕后也会暂停")
+                });
+                
+                // 绑定视频播放错误事件
+                this.on('error',function(){
+	               alert("不支持播放");
+	            });
+	            
+                // 绑定视频播放结束事件
+	            this.on('ended',function(){
+	                console.log('视频播放结束');
+	            });
+	            this.on('firstplay',function(){
+	                console.log('第一次播放');
+	              	this.fluid(false); // 关闭 自适应
+	            });
+	           	this.on('seeking',function(){
+	                console.log('正在去拿视频流的路上');
+	            });
+	            this.on('canplay',function(){
+	                console.log('正可以播放，但中途可能因为加载而暂停');
+	            });
+	            
+	            // 视频跳转
+	            this.on('seeked',function(){
+	                console.log('已经拿到视频流,可以播放');
+	            });
+	            
+	            /** 媒体因缓冲不足以播放 */
+	            this.on('waiting',function(){
+	                console.log('waiting');
+	            });
+	            
+	            // 绑定播放时间更新事件
+	            this.on('timeupdate',function(){
+	            	// 属性duration 在flash情况下无效
+	                // 通过判断当前时间(currentTime)和总时间(duration)是否相等来判断视频是否结束
+	                if (myPlayer.duration() != 0 && myPlayer.currentTime() === myPlayer.duration()) {
+	                	console.log('播放结束');
+	                	myPlayer.pause();
+	                }
+	            });
+	            
+	            // 绑定音量改变事件
+	            this.on('volumechange',function(){
+	            	// 声音大小（0-1之间）
+	            	console.log("调整音量"+myPlayer.volume());
+	            });
+	            
+	             // 绑定播放倍速改变事件
+	            this.on('ratechange',function(){
+	            	console.log("播放倍速"+myPlayer.rate());
+	            });
+	            
+	             // 绑定视频播放时长改变事件
+	            this.on('durationchange',function(){
+	            	console.log("视频播放时长"+myPlayer.duration());
+	            });
+	            
+	            // 绑定全屏改变事件
+	            this.on('fullscreenchange',function(){
+	            	if(myPlayer.isFullscreen()){
+	            		console.log("enter fullscreenchange")
+	            	} else {
+	            		console.log("exit fullscreenchange")	
+	            	}
+                });
+			});
+			
+			/** 调整方向时控制改变 */
+			window.addEventListener('orientationchange', function() {
+				resetVideoSize(myPlayer);
+			});
+			
+			
+			var resetVideoSize = function(myPlayer){
+			 	var videoJsBoxWidth = $(".video-js").width();
+                var ratio = 1440/900;
+                var videoJsBoxHeight = videoJsBoxWidth/ratio;
+                myPlayer.height(videoJsBoxHeight);
+			}
+			
+			
+			/** 浏览器监听事件 */
+			var orientation=
+			// 判断手机横竖屏状态：
+			window.addEventListener("onorientationchange" in window ? "orientationchange"
+					: "resize", function() {
+				if (window.orientation == 180 || window.orientation == 0) { // 竖向
+					orientation = 0;
+				}
+				if (window.orientation == 90 || window.orientation == -90) { //横向
+					orientation = 1;
+				}
+			}, false);
+
+			
+        	
+        	// 当前网络状态
+        	// myPlayer.networkState();
+			// 获取音量
+			// myPlayer.volume
+			document.querySelector('.actions').addEventListener("click",function(e){
+				if(e.srcElement.tagName.toLowerCase()!=='a' || e.target.classList.contains('active')) 
+					return;
+				var i = e.target.id, btn = e.target;
+				switch(i){
+					case 'btn0': // 清理
+				 		myPlayer.dispose();
+            			break;
+				 	case 'btn1': // 播放
+				 		myPlayer.play();
+            			break;
+            		case 'btn2': // 暂停
+            			myPlayer.pause()
+            			break;
+            		case 'btn3': // 隐藏音量调节控件
+            			alert(3);
+            			break;
+            		case 'btn4':// 设置宽高
+            			// myPlayer.width(); // 取得视频的宽度
+            			// myPlayer.height();// 获取视频的高度
+            			alert(4);
+            			break;
+            		case 'btn5': // 显示
+            			myPlayer.show();
+            			break;
+            		case 'btn6': // 隐藏
+            			myPlayer.hide();
+            			break;
+            		case 'btn7': // 重置视频地址
+            			myPlayer.pause();
+            			myPlayer.src('http://www.html5videoplayer.net/videos/madagascar3.mp4'); 
+            			myPlayer.reset();
+            			myPlayer.load(); // 刷新页面
+						myPlayer.play();
+            			break;
+            		case 'btn8': // 进入全屏
+            			if(!myPlayer.isFullscreen()){
+            				if (video.requestFullscreen) {
+								video.requestFullscreen();
+							} else if (video.webkitRequestFullscreen) {
+							    video.webkitRequestFullscreen();
+							} else if (video.mozRequestFullScreen) {
+								video.mozRequestFullScreen();
+							} else if (video.msRequestFullscreen) {
+								video.msRequestFullscreen();
+							}
+            			}
+            			break;
+            		case 'btn9': // 退出全屏
+            			if(myPlayer.isFullscreen()){
+            				if (document.exitFullscreen) {
+							    document.exitFullscreen();
+							} else if (document.webkitExitFullscreen) {
+							    document.webkitExitFullscreen();
+							} else if (document.mozCancelFullScreen) {
+							    document.mozCancelFullScreen();
+							} else if (document.msExitFullscreen) {
+							    document.msExitFullscreen();
+							}
+            			}
+            			break;
+            		default:
+			            break; 
+				}
+			})
+			
+			// 判断试听时间
+			var listenTime = 15;
+			var listenModel = false;// 是否开启调试模式
+			window.loopMarquee = setInterval(function(){
+				if(listenModel){
+					if(myPlayer.currentTime() >= listenTime){
+						myPlayer.pause()
+						alert("试听时间已结束");
+					}		
+				}
+				
+			},500); // 设置每500毫秒查询一次
+			
+			// 记录观看历史，下次从上次位置打开
+			$(window ).unload(function() {
+				myPlayer.pause()
+				alert();
+			});
+			
+			var isVideoBreak;
+			var videoPlayController = {
+	        	startVideo :function () {
+	        		myPlayer.play();// 开始播放
+	        		
+	        		// 微信内全屏支持
+	        		// myPlayer.width(window.screen.width); // 设置宽度
+	            	// myPlayer.height(window.screen.height);// 设置高度
+	            	// myPlayer.size(window.screen.width,window.screen.height); // 一步到位的设置大小
+	            
+	            //判断开始播放视频，移除高斯模糊等待层
+	            var isVideoPlaying = setInterval(function(){
+	                var currentTime = myPlayer.currentTime();
+	                if(currentTime > 0){
+	                    $('.vjs-poster').remove();
+	                    clearInterval(isVideoPlaying);
+	                }
+	            },200);
+	            
+	        		//判断开始播放视频，一些操作处理
+	            	var isVideoPlaying = setInterval(function(){
+	            		var currentTime = myPlayer.currentTime();
+	            		if(currentTime > 0){
+	            			clearInterval(isVideoPlaying);	
+	            		}
+	            	});
+	            	
+	        		// 判断视频是否卡住，卡主3s重新load视频
+	        		var lastTime = -1,tryTimes = 0;
+	        		clearInterval(isVideoBreak);
+	        		isVideoBreak = setInterval(function(){
+	        		 	var currentTime = myPlayer.currentTime();
+	                	console.log('currentTime:'+currentTime+',lastTime:'+lastTime);
+	
+		                if(currentTime == lastTime){
+		                    //此时视频已卡主3s
+		                    //设置当前播放时间为超时时间，此时videojs会在play()后把currentTime设置为0
+		                    myPlayer.currentTime(currentTime+10000);
+		                    myPlayer.play();
+		
+		                    //尝试5次播放后，如仍未播放成功提示刷新
+		                    if(++tryTimes > 5){
+		                        alert('您的网速有点慢，刷新下试试');
+		                        tryTimes = 0;
+		                    }
+		                } else {
+		                    lastTime = currentTime;
+		                    tryTimes = 0;
+		                }
+	        		},3000);
+	        	},
+	        	timeformcat : function(total){ // 格式化时分秒
+	        		var hour = parseInt(total / 3600);
+	        		var minutes = parseInt((total - hour * 3600) / 60);
+					var seconds = parseInt(total - hour * 3600 - minutes * 60);
+					return(hour < 10 ? ("0" + hour) : hour) + ":" + (minutes < 10 ? ("0" + minutes) : minutes) + ":" + (seconds < 10 ? ("0" + seconds) : seconds);
+	        	}
+			}
+			
+			/** 弹幕控制 */
+			var barrageController = {
+				loadTrack:function(){ // 加载字幕
+					
+				},
+				trackShowHandler:function(){
+					
+				},
+				trackShow:function(){ // 显示字幕内容
+					
+				},
+				trackHide:function(){ // 隐藏字字幕内容
+					
+				},
+				resetTrack:function(){ // 重置字幕 
+					
+				},
+				animateResume:function(){ // 继续播放所有弹幕
+					
+				},
+				animatePause:function(){ // 暂停所有弹幕
+					
+				}
+			}
+			
+			var pushHistory = function(){  // 添加历史记录
+				
+			}
+			
+			/**
+			 *  监听视频单击事件 
+			 * 
+			 * swiperight:视频手势右滑动事件(竖：右；横：上)
+			 * 
+			 * swipeleft:视频手势左滑动事件(竖：左；横：下)
+			 * 
+			 * swipeup:视频手势上滑动事件 (竖：上；横：左)
+			 * 
+			 * swipedown:视频手势下滑动事件 (竖：下；横：右)
+			 */
+			var eventVideoClickHandler = function(event){ 
+				
+			}
+		</script>
+	</body>
+</html>
